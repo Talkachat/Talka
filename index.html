@@ -3,264 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TALKA — E2EE Messenger (RSA Mode)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <title>Tic-Tac-Toe Deluxe</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        :root {
-            --bg: #0b141a;
-            --sidebar: #111b21;
-            --panel: #202c33;
-            --text: #e9edef;
-            --accent: #00a884;
-            --muted: #8696a0;
-            --my-msg: #005c4b;
-        }
-
         body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            display: flex;
-            height: 100vh;
-        }
-
-        .sidebar {
-            width: 320px;
-            background: var(--sidebar);
-            border-right: 1px solid #2a3942;
+            font-family: 'Segoe UI', sans-serif;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .brand {
-            font-family: 'Poppins', sans-serif;
-            font-weight: 800;
-            font-size: 28px;
-            letter-spacing: 2px;
-            color: var(--accent);
-            margin-bottom: 30px;
-            user-select: none;
-        }
-
-        .brand span { color: #fff; }
-
-        .sidebar h3 { font-size: 14px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
-        
-        textarea {
-            width: 100%;
-            background: #2a3942;
-            border: 1px solid #3b4a54;
-            color: #fff;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 11px;
-            resize: none;
-            margin-bottom: 15px;
-            box-sizing: border-box;
-            word-break: break-all;
-        }
-
-        button {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: opacity 0.2s;
-        }
-
-        button:hover { opacity: 0.9; }
-        button.secondary { background: #3b4a54; margin-top: 5px; }
-
-        .main-chat {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-            background-blend-mode: overlay;
-        }
-
-        .msg-bubble {
-            max-width: 70%;
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 15px;
-            line-height: 1.4;
-            position: relative;
-        }
-
-        .msg-bubble.me { background: var(--my-msg); align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg-bubble.them { background: var(--panel); align-self: flex-start; border-bottom-left-radius: 2px; }
-
-        .msg-bubble .time {
-            font-size: 10px;
-            color: var(--muted);
-            display: block;
-            text-align: right;
-            margin-top: 5px;
-        }
-
-        .input-bar {
-            background: var(--panel);
-            padding: 15px 20px;
-            display: flex;
             align-items: center;
-            gap: 15px;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
 
-        .input-bar input[type="text"] {
-            flex: 1;
-            background: #2a3942;
+        .setup-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        input {
+            padding: 8px;
+            border-radius: 5px;
             border: none;
-            color: #fff;
-            padding: 12px 15px;
-            border-radius: 25px;
             outline: none;
         }
 
-        #status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; background: #555; }
-        .online { background: var(--accent) !important; }
+        .status {
+            margin: 20px 0;
+            font-size: 1.8rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 15px;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 900;
+            cursor: pointer;
+            color: #333;
+            transition: all 0.2s ease;
+        }
+
+        .cell:hover {
+            transform: scale(1.05);
+            background: #f0f0f0;
+        }
+
+        .cell.x { color: #ff4757; }
+        .cell.o { color: #2e86de; }
+
+        /* Winner Animation */
+        @keyframes winner-glow {
+            from { transform: scale(1); background: white; }
+            to { transform: scale(1.1); background: #2ed573; color: white; }
+        }
+
+        .winner-cell {
+            animation: winner-glow 0.5s infinite alternate;
+        }
+
+        .reset-btn {
+            margin-top: 30px;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
 
-<div class="sidebar">
-    <div class="brand">TALKA<span>.</span></div>
+    <h1>❌ Tic-Tac-Toe ⭕</h1>
+
+    <div class="setup-container">
+        <input type="text" id="p1" placeholder="Player X Name" value="Player X">
+        <input type="text" id="p2" placeholder="Player O Name" value="Player O">
+    </div>
+
+    <div class="status" id="status">Let's Play!</div>
     
-    <h3>1. Identity</h3>
-    <button onclick="generateIdentity()">Generate Keys</button>
-    <p style="font-size: 11px; color: var(--muted); margin-top: 10px;">Share this key with your partner:</p>
-    <textarea id="myPubKey" readonly rows="4" placeholder="Click generate..."></textarea>
-
-    <h3>2. Connection</h3>
-    <textarea id="peerPubKey" rows="4" placeholder="Paste partner's key..."></textarea>
-    <button class="secondary" onclick="establishSecureChannel()">Lock On Partner</button>
-    
-    <div style="margin-top: auto; font-size: 12px; display: flex; align-items: center;">
-        <span id="status-dot"></span> <span id="status-text">Disconnected</span>
-    </div>
-</div>
-
-<div class="main-chat">
-    <div class="messages" id="chatBox">
-        <div class="msg-bubble them">Welcome to <b>TALKA</b>. Messages are encrypted using RSA-2048. Generate your keys to start.</div>
+    <div class="board" id="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
     </div>
 
-    <div class="input-bar">
-        <input type="text" id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendText()">
-        <button onclick="sendText()">Send</button>
-    </div>
-</div>
+    <button class="reset-btn" onclick="resetGame()">New Round</button>
 
-<script>
-    let myKeys, partnerPubKey;
+    <script>
+        const statusElement = document.getElementById('status');
+        const cells = document.querySelectorAll('.cell');
+        let currentPlayer = 'X';
+        let gameState = ["", "", "", "", "", "", "", "", ""];
+        let gameActive = true;
 
-    // --- NEW SIMPLIFIED RSA LOGIC ---
+        const winConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
 
-    // 1. Generate RSA Key Pair
-    async function generateIdentity() {
-        try {
-            myKeys = await crypto.subtle.generateKey(
-                {
-                    name: "RSA-OAEP",
-                    modulusLength: 2048,
-                    publicExponent: new Uint8Array([1, 0, 1]),
-                    hash: "SHA-256",
-                },
-                true, 
-                ["encrypt", "decrypt"]
-            );
-
-            // Export public key as JWK (JSON Web Key) for easy transport
-            const jwk = await crypto.subtle.exportKey("jwk", myKeys.publicKey);
-            document.getElementById('myPubKey').value = btoa(JSON.stringify(jwk));
-            updateStatus("My Keys Ready", false);
-        } catch (e) {
-            console.error(e);
-            alert("Error generating keys.");
+        function getPlayerName(symbol) {
+            const name = symbol === 'X' ? 
+                document.getElementById('p1').value : 
+                document.getElementById('p2').value;
+            return name || `Player ${symbol}`;
         }
-    }
 
-    // 2. Import Partner's Key
-    async function establishSecureChannel() {
-        try {
-            const b64Jwk = document.getElementById('peerPubKey').value.trim();
-            if (!b64Jwk) return alert("Please paste a key.");
+        function handleCellClick(e) {
+            const cell = e.target;
+            const idx = parseInt(cell.getAttribute('data-index'));
 
-            const jwk = JSON.parse(atob(b64Jwk));
-            
-            partnerPubKey = await crypto.subtle.importKey(
-                "jwk",
-                jwk,
-                { name: "RSA-OAEP", hash: "SHA-256" },
-                false,
-                ["encrypt"]
-            );
-            
-            updateStatus("Connected to Partner", true);
-            appendSystemMessage("Secure link active. Messages you send will be encrypted for them.");
-        } catch (e) {
-            alert("Invalid key format. Ensure you copied the entire string.");
+            if (gameState[idx] !== "" || !gameActive) return;
+
+            gameState[idx] = currentPlayer;
+            cell.innerText = currentPlayer;
+            cell.classList.add(currentPlayer.toLowerCase());
+
+            checkWinner();
         }
-    }
 
-    // 3. Encrypt for Partner
-    async function sendText() {
-        const input = document.getElementById('msgInput');
-        const text = input.value.trim();
-        
-        if (!text) return;
-        if (!partnerPubKey) return alert("You need your partner's key to send encrypted messages!");
+        function celebrate() {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#ff4757', '#2e86de', '#2ed573']
+            });
+        }
 
-        // In a real app, this encrypted data is what you send over the network
-        const encoder = new TextEncoder();
-        const data = encoder.encode(text);
-        const encrypted = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, partnerPubKey, data);
-        
-        console.log("Outgoing Encrypted Payload:", new Uint8Array(encrypted));
+        function checkWinner() {
+            let roundWon = false;
+            let winningLine = [];
 
-        appendMessage("me", text);
-        input.value = "";
-    }
+            for (let condition of winConditions) {
+                let [a, b, c] = condition;
+                if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+                    roundWon = true;
+                    winningLine = condition;
+                    break;
+                }
+            }
 
-    // --- UI HELPERS ---
-    function updateStatus(text, online) {
-        document.getElementById('status-text').innerText = text;
-        document.getElementById('status-dot').className = online ? 'online' : '';
-    }
+            if (roundWon) {
+                statusElement.innerText = `🏆 ${getPlayerName(currentPlayer)} Wins!`;
+                gameActive = false;
+                winningLine.forEach(idx => cells[idx].classList.add('winner-cell'));
+                celebrate();
+                return;
+            }
 
-    function appendMessage(sender, text) {
-        const box = document.getElementById('chatBox');
-        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const div = document.createElement('div');
-        div.className = `msg-bubble ${sender}`;
-        div.innerHTML = `${text} <span class="time">${time}</span>`;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
-    }
+            if (!gameState.includes("")) {
+                statusElement.innerText = "🤝 It's a Draw!";
+                gameActive = false;
+                return;
+            }
 
-    function appendSystemMessage(text) {
-        const box = document.getElementById('chatBox');
-        const div = document.createElement('div');
-        div.style = "text-align: center; font-size: 11px; color: var(--muted); margin: 10px 0;";
-        div.innerText = text;
-        box.appendChild(div);
-    }
-</script>
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            statusElement.innerText = `${getPlayerName(currentPlayer)}'s Turn (${currentPlayer})`;
+        }
+
+        function resetGame() {
+            gameActive = true;
+            currentPlayer = "X";
+            gameState = ["", "", "", "", "", "", "", "", ""];
+            statusElement.innerText = `${getPlayerName('X')}'s Turn (X)`;
+            cells.forEach(cell => {
+                cell.innerText = "";
+                cell.classList.remove('x', 'o', 'winner-cell');
+            });
+        }
+
+        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+        // Initial status update
+        statusElement.innerText = `${getPlayerName('X')}'s Turn (X)`;
+    </script>
 </body>
 </html>
