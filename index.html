@@ -3,111 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic-Tac-Toe Deluxe</title>
+    <title>Ultimate Tic-Tac-Toe</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
+        :root { --p1-color: #ff4757; --p2-color: #2e86de; }
+        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #1a1a2e; color: white; }
+        
+        .menu { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px; text-align: center; width: 320px; }
+        .menu input, .menu select { width: 80%; padding: 8px; margin: 5px 0; border-radius: 5px; border: none; }
+        
+        .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 10px; margin: 20px; }
+        .cell { width: 100px; height: 100px; background: #16213e; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .cell:hover { background: #0f3460; }
+        .cell.x { color: var(--p1-color); }
+        .cell.o { color: var(--p2-color); }
+        .winner-cell { background: #2ed573 !important; color: white !important; }
 
-        .setup-container {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        input {
-            padding: 8px;
-            border-radius: 5px;
-            border: none;
-            outline: none;
-        }
-
-        .status {
-            margin: 20px 0;
-            font-size: 1.8rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            font-weight: bold;
-        }
-
-        .board {
-            display: grid;
-            grid-template-columns: repeat(3, 100px);
-            grid-template-rows: repeat(3, 100px);
-            gap: 15px;
-        }
-
-        .cell {
-            width: 100px;
-            height: 100px;
-            background: white;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            font-weight: 900;
-            cursor: pointer;
-            color: #333;
-            transition: all 0.2s ease;
-        }
-
-        .cell:hover {
-            transform: scale(1.05);
-            background: #f0f0f0;
-        }
-
-        .cell.x { color: #ff4757; }
-        .cell.o { color: #2e86de; }
-
-        /* Winner Animation */
-        @keyframes winner-glow {
-            from { transform: scale(1); background: white; }
-            to { transform: scale(1.1); background: #2ed573; color: white; }
-        }
-
-        .winner-cell {
-            animation: winner-glow 0.5s infinite alternate;
-        }
-
-        .reset-btn {
-            margin-top: 30px;
-            padding: 12px 30px;
-            font-size: 1.1rem;
-            background: #ff4757;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
+        .status { font-size: 1.5rem; margin-bottom: 10px; font-weight: bold; }
+        .controls button { padding: 10px 20px; cursor: pointer; border-radius: 5px; border: none; background: var(--p1-color); color: white; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>❌ Tic-Tac-Toe ⭕</h1>
+    <h1>🎮 Tic-Tac-Toe Pro</h1>
 
-    <div class="setup-container">
-        <input type="text" id="p1" placeholder="Player X Name" value="Player X">
-        <input type="text" id="p2" placeholder="Player O Name" value="Player O">
+    <div class="menu">
+        <select id="gameMode" onchange="resetGame()">
+            <option value="pvp">Player vs Player (Local)</option>
+            <option value="pvc">Player vs Computer (AI)</option>
+        </select>
+        <input type="text" id="p1Name" placeholder="Player X Name" value="Player 1">
+        <input type="text" id="p2Name" placeholder="Player O Name" value="Computer">
     </div>
 
-    <div class="status" id="status">Let's Play!</div>
-    
+    <div class="status" id="status">X's Turn</div>
+
     <div class="board" id="board">
         <div class="cell" data-index="0"></div>
         <div class="cell" data-index="1"></div>
@@ -120,95 +50,128 @@
         <div class="cell" data-index="8"></div>
     </div>
 
-    <button class="reset-btn" onclick="resetGame()">New Round</button>
+    <div class="controls">
+        <button onclick="resetGame()">Restart Game</button>
+    </div>
 
     <script>
-        const statusElement = document.getElementById('status');
         const cells = document.querySelectorAll('.cell');
-        let currentPlayer = 'X';
-        let gameState = ["", "", "", "", "", "", "", "", ""];
-        let gameActive = true;
+        const statusTxt = document.getElementById('status');
+        let board = ["", "", "", "", "", "", "", "", ""];
+        let currentPlayer = "X";
+        let active = true;
 
         const winConditions = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
+            [0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6]
         ];
 
-        function getPlayerName(symbol) {
-            const name = symbol === 'X' ? 
-                document.getElementById('p1').value : 
-                document.getElementById('p2').value;
-            return name || `Player ${symbol}`;
+        function handleClick(e) {
+            const i = e.target.dataset.index;
+            if (board[i] !== "" || !active) return;
+
+            makeMove(i, currentPlayer);
+
+            if (active && document.getElementById('gameMode').value === 'pvc' && currentPlayer === "O") {
+                setTimeout(computerMove, 500);
+            }
         }
 
-        function handleCellClick(e) {
-            const cell = e.target;
-            const idx = parseInt(cell.getAttribute('data-index'));
-
-            if (gameState[idx] !== "" || !gameActive) return;
-
-            gameState[idx] = currentPlayer;
-            cell.innerText = currentPlayer;
-            cell.classList.add(currentPlayer.toLowerCase());
-
-            checkWinner();
+        function makeMove(index, player) {
+            board[index] = player;
+            cells[index].innerText = player;
+            cells[index].classList.add(player.toLowerCase());
+            checkResult();
         }
 
-        function celebrate() {
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#ff4757', '#2e86de', '#2ed573']
-            });
-        }
-
-        function checkWinner() {
-            let roundWon = false;
-            let winningLine = [];
-
+        function checkResult() {
+            let win = null;
             for (let condition of winConditions) {
-                let [a, b, c] = condition;
-                if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
-                    roundWon = true;
-                    winningLine = condition;
+                const [a, b, c] = condition;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    win = condition;
                     break;
                 }
             }
 
-            if (roundWon) {
-                statusElement.innerText = `🏆 ${getPlayerName(currentPlayer)} Wins!`;
-                gameActive = false;
-                winningLine.forEach(idx => cells[idx].classList.add('winner-cell'));
-                celebrate();
-                return;
+            if (win) {
+                const winnerName = currentPlayer === "X" ? document.getElementById('p1Name').value : document.getElementById('p2Name').value;
+                statusTxt.innerText = `🏆 ${winnerName} Wins!`;
+                active = false;
+                win.forEach(i => cells[i].classList.add('winner-cell'));
+                confetti();
+            } else if (!board.includes("")) {
+                statusTxt.innerText = "🤝 Draw!";
+                active = false;
+            } else {
+                currentPlayer = currentPlayer === "X" ? "O" : "X";
+                const nextName = currentPlayer === "X" ? document.getElementById('p1Name').value : document.getElementById('p2Name').value;
+                statusTxt.innerText = `${nextName}'s Turn (${currentPlayer})`;
             }
+        }
 
-            if (!gameState.includes("")) {
-                statusElement.innerText = "🤝 It's a Draw!";
-                gameActive = false;
-                return;
+        // --- AI LOGIC (MINIMAX) ---
+        function computerMove() {
+            let bestScore = -Infinity;
+            let move;
+            for (let i = 0; i < 9; i++) {
+                if (board[i] === "") {
+                    board[i] = "O";
+                    let score = minimax(board, 0, false);
+                    board[i] = "";
+                    if (score > bestScore) {
+                        bestScore = score;
+                        move = i;
+                    }
+                }
             }
+            makeMove(move, "O");
+        }
 
-            currentPlayer = currentPlayer === "X" ? "O" : "X";
-            statusElement.innerText = `${getPlayerName(currentPlayer)}'s Turn (${currentPlayer})`;
+        function minimax(currBoard, depth, isMaximizing) {
+            let result = evaluate(currBoard);
+            if (result !== null) return result;
+
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (currBoard[i] === "") {
+                        currBoard[i] = "O";
+                        bestScore = Math.max(bestScore, minimax(currBoard, depth + 1, false));
+                        currBoard[i] = "";
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (currBoard[i] === "") {
+                        currBoard[i] = "X";
+                        bestScore = Math.min(bestScore, minimax(currBoard, depth + 1, true));
+                        currBoard[i] = "";
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        function evaluate(b) {
+            for (let c of winConditions) {
+                if (b[c[0]] && b[c[0]] === b[c[1]] && b[c[0]] === b[c[2]]) {
+                    return b[c[0]] === "O" ? 10 : -10;
+                }
+            }
+            return b.includes("") ? null : 0;
         }
 
         function resetGame() {
-            gameActive = true;
+            board = ["", "", "", "", "", "", "", "", ""];
             currentPlayer = "X";
-            gameState = ["", "", "", "", "", "", "", "", ""];
-            statusElement.innerText = `${getPlayerName('X')}'s Turn (X)`;
-            cells.forEach(cell => {
-                cell.innerText = "";
-                cell.classList.remove('x', 'o', 'winner-cell');
-            });
+            active = true;
+            statusTxt.innerText = `${document.getElementById('p1Name').value}'s Turn (X)`;
+            cells.forEach(c => { c.innerText = ""; c.className = "cell"; });
         }
 
-        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
-        // Initial status update
-        statusElement.innerText = `${getPlayerName('X')}'s Turn (X)`;
+        cells.forEach(c => c.addEventListener('click', handleClick));
     </script>
 </body>
 </html>
