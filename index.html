@@ -3,38 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic-Tac-Toe AI Difficulty</title>
+    <title>AI Tic-Tac-Toe: 3 Levels</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        :root { --p1: #ff4757; --p2: #2e86de; --bg: #0f3460; }
-        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; background: #1a1a2e; color: white; margin: 0; padding: 20px; }
+        :root { --primary: #00d2ff; --secondary: #3a7bd5; --accent: #ff0058; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0c29; color: white; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
         
-        .setup { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        select, input { padding: 10px; border-radius: 5px; border: none; margin: 5px; font-size: 1rem; }
-
-        .status { font-size: 1.5rem; margin-bottom: 15px; font-weight: bold; color: #e94560; }
+        .panel { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; text-align: center; width: 320px; }
+        select, input { width: 90%; padding: 10px; margin: 8px 0; border-radius: 8px; border: none; background: #1a1a3a; color: white; font-size: 1rem; }
+        
+        .status { font-size: 1.4rem; margin: 15px 0; font-weight: bold; color: var(--primary); text-shadow: 0 0 10px rgba(0,210,255,0.5); }
         
         .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 12px; }
-        .cell { width: 100px; height: 100px; background: #16213e; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
-        .cell:hover { background: #1f4068; border-color: #e94560; }
-        .cell.x { color: var(--p1); }
-        .cell.o { color: var(--p2); }
-        .win { background: #2ed573 !important; transform: scale(1.05); }
+        .cell { width: 100px; height: 100px; background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2.8rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .cell:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); }
+        .cell.x { color: var(--primary); }
+        .cell.o { color: var(--accent); }
+        .cell.winning-cell { background: #2ed573 !important; color: #fff !important; }
 
-        button.reset { margin-top: 25px; padding: 12px 30px; border: none; border-radius: 50px; background: #e94560; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button.reset:hover { background: #ff4757; transform: translateY(-2px); }
+        .btn { margin-top: 25px; padding: 12px 35px; border: none; border-radius: 50px; background: linear-gradient(to right, var(--primary), var(--secondary)); color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(0,210,255,0.4); }
+
+        .visitor-box { margin-top: 40px; font-size: 0.8rem; color: #888; display: flex; align-items: center; gap: 8px; }
+        .dot { width: 8px; height: 8px; background: #2ed573; border-radius: 50%; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
-    <h1>🤖 AI Battle</h1>
-
-    <div class="setup">
-        <input type="text" id="userName" placeholder="Your Name" value="Player 1">
-        <select id="difficulty">
-            <option value="easy">Level: Beginner (Random)</option>
-            <option value="medium">Level: Medium (Mixed)</option>
-            <option value="hard">Level: Hard (Unbeatable)</option>
+    <div class="panel">
+        <input type="text" id="pName" placeholder="Enter Your Name" value="Player 1">
+        <select id="diff">
+            <option value="1">Level: Beginner (Random)</option>
+            <option value="2">Level: Intermediate (Blocks Moves)</option>
+            <option value="3">Level: Hard (Minimax - Unbeatable)</option>
         </select>
     </div>
 
@@ -52,141 +54,125 @@
         <div class="cell" data-index="8"></div>
     </div>
 
-    <button class="reset" onclick="resetGame()">Restart Game</button>
+    <button class="btn" onclick="reset()">Restart Match</button>
+
+    <div class="visitor-box">
+        <div class="dot"></div> Total Global Visitors: <span id="vCount">0</span>
+    </div>
 
     <script>
         const cells = document.querySelectorAll('.cell');
         const statusTxt = document.getElementById('status');
         let board = ["", "", "", "", "", "", "", "", ""];
         let active = true;
-        let human = "X";
+        let hu = "X";
         let ai = "O";
 
-        const winLines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 
         function handleClick(e) {
-            const idx = e.target.dataset.index;
-            if (board[idx] !== "" || !active) return;
-
-            makeMove(idx, human);
-            
-            if (active) {
-                statusTxt.innerText = "Computer is thinking...";
-                setTimeout(aiTurn, 600);
-            }
+            const i = e.target.dataset.index;
+            if (board[i] !== "" || !active) return;
+            makeMove(i, hu);
+            if (active) setTimeout(aiPlay, 500);
         }
 
-        function makeMove(idx, player) {
-            board[idx] = player;
-            cells[idx].innerText = player;
-            cells[idx].classList.add(player.toLowerCase());
-            checkWinner(player);
+        function makeMove(i, p) {
+            board[i] = p;
+            cells[i].innerText = p;
+            cells[i].classList.add(p.toLowerCase());
+            check(p);
         }
 
-        function aiTurn() {
-            if (!active) return;
-            const diff = document.getElementById('difficulty').value;
+        function aiPlay() {
+            const d = document.getElementById('diff').value;
             let move;
-
-            if (diff === 'easy') {
-                move = getRandomMove();
-            } else if (diff === 'medium') {
-                // 50% chance to play perfect, 50% to play random
-                move = Math.random() > 0.5 ? getBestMove() : getRandomMove();
-            } else {
-                move = getBestMove();
-            }
-
+            if (d == "1") move = randomMove();
+            else if (d == "2") move = midMove();
+            else move = bestMove();
             makeMove(move, ai);
-            if (active) statusTxt.innerText = "Your Turn!";
         }
 
-        function getRandomMove() {
-            let available = board.map((v, i) => v === "" ? i : null).filter(v => v !== null);
-            return available[Math.floor(Math.random() * available.length)];
+        function randomMove() {
+            let avail = board.map((v,i) => v===""?i:null).filter(v=>v!==null);
+            return avail[Math.floor(Math.random()*avail.length)];
         }
 
-        function getBestMove() {
-            let bestScore = -Infinity;
-            let move;
-            for (let i = 0; i < 9; i++) {
-                if (board[i] === "") {
-                    board[i] = ai;
-                    let score = minimax(board, 0, false);
-                    board[i] = "";
-                    if (score > bestScore) {
-                        bestScore = score;
-                        move = i;
+        function midMove() {
+            // Check if AI can win or needs to block player
+            for(let p of [ai, hu]) {
+                for(let line of wins) {
+                    let vals = line.map(i => board[i]);
+                    if(vals.filter(v => v===p).length === 2 && vals.includes("")) {
+                        return line[vals.indexOf("")];
                     }
+                }
+            }
+            return randomMove();
+        }
+
+        function bestMove() {
+            let bScore = -Infinity, move;
+            for(let i=0; i<9; i++) {
+                if(board[i]==="") {
+                    board[i]=ai;
+                    let score = minimax(board, 0, false);
+                    board[i]="";
+                    if(score > bScore) { bScore = score; move = i; }
                 }
             }
             return move;
         }
 
-        function minimax(tempBoard, depth, isMaxing) {
-            let res = evaluate(tempBoard);
-            if (res !== null) return res;
-
-            if (isMaxing) {
+        function minimax(b, depth, isMax) {
+            let res = evalWin(b);
+            if(res !== null) return res;
+            if(isMax) {
                 let best = -Infinity;
-                for (let i = 0; i < 9; i++) {
-                    if (tempBoard[i] === "") {
-                        tempBoard[i] = ai;
-                        best = Math.max(best, minimax(tempBoard, depth + 1, false));
-                        tempBoard[i] = "";
-                    }
+                for(let i=0; i<9; i++) if(b[i]==="") {
+                    b[i]=ai; best = Math.max(best, minimax(b, depth+1, false)); b[i]="";
                 }
                 return best;
             } else {
                 let best = Infinity;
-                for (let i = 0; i < 9; i++) {
-                    if (tempBoard[i] === "") {
-                        tempBoard[i] = human;
-                        best = Math.min(best, minimax(tempBoard, depth + 1, true));
-                        tempBoard[i] = "";
-                    }
+                for(let i=0; i<9; i++) if(b[i]==="") {
+                    b[i]=hu; best = Math.min(best, minimax(b, depth+1, true)); b[i]="";
                 }
                 return best;
             }
         }
 
-        function evaluate(b) {
-            for (let line of winLines) {
-                if (b[line[0]] && b[line[0]] === b[line[1]] && b[line[0]] === b[line[2]]) {
-                    return b[line[0]] === ai ? 10 : -10;
-                }
-            }
+        function evalWin(b) {
+            for(let l of wins) if(b[l[0]] && b[l[0]]===b[l[1]] && b[l[0]]===b[l[2]]) return b[l[0]]===ai?10:-10;
             return b.includes("") ? null : 0;
         }
 
-        function checkWinner(player) {
-            let winner = null;
-            for (let line of winLines) {
-                if (board[line[0]] && board[line[0]] === board[line[1]] && board[line[0]] === board[line[2]]) {
-                    winner = line;
-                }
-            }
-
-            if (winner) {
+        function check(p) {
+            let winLine = wins.find(l => board[l[0]] && board[l[0]]===board[l[1]] && board[l[0]]===board[l[2]]);
+            if(winLine) {
                 active = false;
-                winner.forEach(i => cells[i].classList.add('win'));
-                const name = player === "X" ? document.getElementById('userName').value : "Computer";
-                statusTxt.innerText = `🏆 ${name} Wins!`;
-                if (player === "X") confetti();
-            } else if (!board.includes("")) {
-                active = false;
-                statusTxt.innerText = "🤝 Draw!";
+                winLine.forEach(i => cells[i].classList.add('winning-cell'));
+                statusTxt.innerText = p === hu ? `🏆 ${document.getElementById('pName').value} Wins!` : "💻 Computer Wins!";
+                if(p === hu) confetti();
+            } else if(!board.includes("")) {
+                active = false; statusTxt.innerText = "🤝 Draw!";
+            } else {
+                statusTxt.innerText = p === hu ? "Computer is thinking..." : "Your Turn!";
             }
         }
 
-        function resetGame() {
-            board = ["", "", "", "", "", "", "", "", ""];
-            active = true;
+        function reset() {
+            board = ["","","","","","","","",""]; active = true;
             statusTxt.innerText = "Your Turn!";
             cells.forEach(c => { c.innerText = ""; c.className = "cell"; });
         }
 
         cells.forEach(c => c.addEventListener('click', handleClick));
+
+        // Simplified Visitor Counter for Demo
+        let count = localStorage.getItem('vCount') || 1240;
+        localStorage.setItem('vCount', ++count);
+        document.getElementById('vCount').innerText = count;
     </script>
 </body>
 </html>
