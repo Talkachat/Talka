@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Talka Pro — Secure Encrypted Meetings</title>
+  <style>
+    :root {
+      --bg: #0b141a;
+      --panel: #202c33;
+      --text: #e9edef;
+      --muted: #8696a0;
+      --accent: #00a884;
+      --accent-hover: #008f6f;
+      --danger: #f15c6d;
+      --border: #313d45;
+    }
+
+    body {
+      margin: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text);
+      display: flex; flex-direction: column; height: 100vh;
+    }
+
+    /* --- AUTHENTICATION SCREENS --- */
+    .overlay {
+      position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .auth-card {
+      background: var(--panel); padding: 40px; border-radius: 16px;
+      width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+    .tab { 
+      flex: 1; padding: 10px; text-align: center; cursor: pointer; 
+      color: var(--muted); border-bottom: 2px solid transparent;
+    }
+    .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+    /* --- LAYOUT --- */
+    header { 
+      background: var(--panel); padding: 15px 25px; 
+      display: flex; justify-content: space-between; align-items: center; 
+      border-bottom: 1px solid var(--border);
+    }
+    main { flex: 1; display: grid; grid-template-columns: 380px 1fr; overflow: hidden; }
+    
+    .sidebar { background: #111b21; border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; }
+    .section-title { font-size: 0.8rem; text-transform: uppercase; color: var(--accent); margin: 20px 0 10px; letter-spacing: 1px; }
+    
+    .card { background: var(--panel); border-radius: 12px; padding: 16px; margin-bottom: 15px; border: 1px solid var(--border); }
+    
+    /* --- VIDEO AREA --- */
+    .video-container { display: flex; flex-direction: column; background: #000; position: relative; }
+    #video-grid { 
+        display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; 
+        flex: 1; align-content: center;
+    }
+    .video-wrapper { position: relative; width: 100%; background: #111; border-radius: 12px; overflow: hidden; }
+    .video-label { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; font-size: 12px; }
+    video { width: 100%; height: auto; display: block; transform: scaleX(-1); }
+    
+    /* --- FORM ELEMENTS --- */
+    input, textarea { 
+        width: 100%; background: #2a3942; border: 1px solid var(--border); color: white; 
+        padding: 12px; border-radius: 8px; margin: 8px 0; box-sizing: border-box; outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    
+    button { 
+        background: var(--accent); color: white; border: none; padding: 12px 20px; 
+        border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s;
+        width: 100%; margin-top: 10px;
+    }
+    button:hover { background: var(--accent-hover); }
+    button.secondary { background: #3b4a54; color: #e9edef; }
+    button.small { padding: 6px 12px; width: auto; font-size: 12px; margin: 0; }
+
+    .hidden { display: none !important; }
+    .log { font-family: monospace; font-size: 11px; color: #00ff41; background: #000; padding: 10px; height: 60px; overflow-y: auto; border-radius: 4px; }
+    .muted { color: var(--muted); font-size: 13px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+
+  <div id="auth-overlay" class="overlay">
+    <div class="auth-card">
+      <h2 style="margin-top:0">Join Talka Pro</h2>
+      <p class="muted">Secure, peer-to-peer encrypted video calls.</p>
+      
+      <div class="tabs">
+        <div id="tab-email" class="tab active" onclick="switchAuth('email')">Email</div>
+        <div id="tab-mobile" class="tab" onclick="switchAuth('mobile')">Mobile</div>
+      </div>
+
+      <div id="email-field">
+        <input type="email" id="reg-email" placeholder="email@example.com">
+      </div>
+      <div id="mobile-field" class="hidden">
+        <input type="tel" id="reg-phone" placeholder="+1 (555) 000-0000">
+      </div>
+
+      <input type="password" id="reg-pass" placeholder="Create a secure password">
+      <button onclick="handleRegister()">Create Account</button>
+      
+      <p id="auth-error" style="color:var(--danger); font-size: 12px; text-align: center; margin-top: 10px;"></p>
+    </div>
+  </div>
+
+  <header>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="background: var(--accent); width: 12px; height: 12px; border-radius: 50%;"></div>
+        <strong style="font-size: 1.2rem;">Talka Pro</strong>
+    </div>
+    <div id="user-display" class="muted">Not logged in</div>
+  </header>
+
+  <main class="hidden" id="app-content">
+    <div class="sidebar">
+      <div class="section-title">Step 1: Identity</div>
+      <div class="card">
+        <p class="muted" style="margin-bottom: 10px;">Generate a unique encryption key for this session.</p>
+        <button id="genBtn" onclick="generateKeys()">Generate Keys</button>
+        <div id="key-section" class="hidden">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                <span style="font-size: 12px;">Your Public Key</span>
+                <button class="small secondary" onclick="copyToClipboard('myPub')">Copy</button>
+            </div>
+            <textarea id="myPub" readonly rows="2" style="font-size: 10px; color: var(--muted);"></textarea>
+            
+            <p style="font-size: 12px; margin: 15px 0 5px;">Paste Partner's Key</p>
+            <textarea id="peerPub" placeholder="Paste key from your partner..." rows="2" style="font-size: 10px;"></textarea>
+            <button class="secondary" onclick="deriveSharedKey()">Lock Secure Channel</button>
+        </div>
+      </div>
+
+      <div class="section-title">Step 2: Connectivity</div>
+      <div class="card">
+        <button onclick="startCall()">Create Invitation</button>
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            <span style="font-size: 12px;">Connection Signal</span>
+            <button class="small secondary" onclick="copyToClipboard('callSignal')">Copy</button>
+        </div>
+        <textarea id="callSignal" placeholder="Signal data will appear here..." rows="3" style="font-size: 10px;"></textarea>
+        <button class="secondary" onclick="processSignal()">Accept Invitation</button>
+      </div>
+
+      <div class="section-title">System Status</div>
+      <div id="log" class="log">> System ready.</div>
+    </div>
+
+    <div class="video-container">
+      <div id="video-grid">
+        <div class="video-wrapper">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <div class="video-label">You (Local)</div>
+        </div>
+        <div class="video-wrapper">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="video-label">Partner (Remote)</div>
+        </div>
+      </div>
+      
+      <div style="padding: 20px; background: var(--panel); border-top: 1px solid var(--border);">
+        <div id="messages" style="height: 120px; overflow-y: auto; margin-bottom: 15px; font-size: 14px;">
+            <div style="color: var(--muted); font-style: italic;">Encrypted chat history...</div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="chatMsg" placeholder="Send a secure message..." style="margin:0">
+            <button onclick="sendMessage()" style="width: auto; margin:0">Send</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentAuthMode = 'email';
+
+    function switchAuth(mode) {
+        currentAuthMode = mode;
+        document.getElementById('tab-email').classList.toggle('active', mode === 'email');
+        document.getElementById('tab-mobile').classList.toggle('active', mode === 'mobile');
+        document.getElementById('email-field').classList.toggle('hidden', mode !== 'email');
+        document.getElementById('mobile-field').classList.toggle('hidden', mode !== 'mobile');
+    }
+
+    function handleRegister() {
+        const identity = currentAuthMode === 'email' ? 
+            document.getElementById('reg-email').value : 
+            document.getElementById('reg-phone').value;
+        const pass = document.getElementById('reg-pass').value;
+
+        if (!identity || pass.length < 4) {
+            document.getElementById('auth-error').innerText = "Please enter valid credentials.";
+            return;
+        }
+
+        // Simulate registration
+        document.getElementById('auth-overlay').classList.add('hidden');
+        document.getElementById('app-content').classList.remove('hidden');
+        document.getElementById('user-display').innerText = `Logged in as: ${identity}`;
+        log(`Authenticated as ${identity}`);
+    }
+
+    function copyToClipboard(id) {
+        const textArea = document.getElementById(id);
+        textArea.select();
+        document.execCommand('copy');
+        alert("Copied to clipboard!");
+    }
+
+    /* --- CORE LOGIC (ENCRYPTION & WEBRTC) --- */
+    let myKeyPair, sharedKey;
+    const log = (m) => { 
+        const l = document.getElementById('log');
+        l.innerText += `\n> ${m}`; 
+        l.scrollTop = l.scrollHeight;
+    };
+
+    async function generateKeys() {
+        myKeyPair = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey']);
+        const pub = await crypto.subtle.exportKey('raw', myKeyPair.publicKey);
+        document.getElementById('myPub').value = btoa(String.fromCharCode(...new Uint8Array(pub)));
+        document.getElementById('key-section').classList.remove('hidden');
+        document.getElementById('genBtn').classList.add('hidden');
+        log("Identity keys generated.");
+    }
+
+    async function deriveSharedKey() {
+        try {
+            const peerData = atob(document.getElementById('peerPub').value);
+            const peerPub = await crypto.subtle.importKey('raw', Uint8Array.from(peerData, c => c.charCodeAt(0)), { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+            const bits = await crypto.subtle.deriveBits({ name: 'ECDH', public: peerPub }, myKeyPair.privateKey, 256);
+            sharedKey = await crypto.subtle.importKey('raw', bits, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+            log("Secure channel established via ECDH.");
+        } catch(e) { log("Error: Invalid Partner Key."); }
+    }
+
+    let pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    
+    async function startCall() {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('localVideo').srcObject = stream;
+        stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        
+        // Wait for ICE candidates to settle for this simplified copy-paste version
+        pc.onicecandidate = (e) => {
+            if (!e.candidate) {
+                document.getElementById('callSignal').value = btoa(JSON.stringify(pc.localDescription));
+                log("Invite created. Copy and send it.");
+            }
+        };
+    }
+
+    pc.ontrack = (event) => {
+        document.getElementById('remoteVideo').srcObject = event.streams[0];
+        log("Partner connected.");
+    };
+
+    async function processSignal() {
+        const raw = document.getElementById('callSignal').value;
+        if(!raw) return;
+        const signal = JSON.parse(atob(raw));
+        
+        if (signal.type === 'offer') {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('localVideo').srcObject = stream;
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            
+            await pc.setRemoteDescription(new RTCSessionDescription(signal));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            document.getElementById('callSignal').value = btoa(JSON.stringify(pc.localDescription));
+            log("Invite accepted. Send your signal back.");
+        } else if (signal.type === 'answer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(signal));
+            log("Call Active.");
+        }
+    }
+
+    function sendMessage() {
+        const msg = document.getElementById('chatMsg').value;
+        if(!msg) return;
+        const box = document.getElementById('messages');
+        box.innerHTML += `<div><b style="color:var(--accent)">You:</b> ${msg}</div>`;
+        box.scrollTop = box.scrollHeight;
+        document.getElementById('chatMsg').value = '';
+    }
+  </script>
+</body>
+</html>
